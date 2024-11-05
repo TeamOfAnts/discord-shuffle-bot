@@ -61,7 +61,7 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 			discord.ChannelMessageSend(message.ChannelID, "멤버가 없습니다.")
 			return
 		}
-		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("현재 멤버: %s\n %d 총 인원:%d", strings.Join(members, ", "), len(members)))
+		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("현재 멤버: %s\n 총 인원:%d", strings.Join(members, ", "), len(members)))
 	case strings.HasPrefix(message.Content, "!add"), strings.HasPrefix(message.Content, "!추가"):
 		replacer := strings.NewReplacer(
 			"!add", "",
