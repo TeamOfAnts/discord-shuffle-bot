@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/TeamOfAnts/discord-shuffle-bot/internal/shuffle"
+	"github.com/TeamOfAnts/discord-shuffle-bot/internal/teams"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 )
 
-var members = []string{}
 var teamSize = 0
 
 func Run() {
@@ -57,11 +57,18 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 	case strings.HasPrefix(message.Content, "!ping"):
 		discord.ChannelMessageSend(message.ChannelID, "pong🏓")
 	case strings.HasPrefix(message.Content, "!members"), strings.HasPrefix(message.Content, "!멤버"):
-		if len(members) == 0 {
+		teams, err := teams.GetTeams()
+		if err != nil {
 			discord.ChannelMessageSend(message.ChannelID, "멤버가 없습니다.")
 			return
 		}
-		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("현재 멤버: %s\n 총 인원:%d", strings.Join(members, ", "), len(members)))
+		team := teams[0]
+
+		if len(team.Members) == 0 {
+			discord.ChannelMessageSend(message.ChannelID, "멤버가 없습니다.")
+			return
+		}
+		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("현재 멤버: %s\n 총 인원:%d", strings.Join(team.Members, ", "), len(team.Members)))
 	case strings.HasPrefix(message.Content, "!add"), strings.HasPrefix(message.Content, "!추가"):
 		replacer := strings.NewReplacer(
 			"!add", "",
@@ -69,15 +76,21 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 		)
 		n := replacer.Replace(message.Content)
 		names := strings.Split(n, ",")
+		formattedNames := make([]string, 0)
 		for _, name := range names {
 			formattedName := strings.TrimSpace(name)
 			if len(formattedName) == 0 {
 				continue
 			}
 
-			members = append(members, formattedName)
+			formattedNames = append(formattedNames, formattedName)
 		}
-		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("멤버 추가 완료\n 현재 멤버: %s\n 총 인원:%d", strings.Join(members, ", "), len(members)))
+		newMembers, err := teams.AddMember(formattedNames)
+		if err != nil {
+			discord.ChannelMessageSend(message.ChannelID, "멤버 추가 실패")
+			return
+		}
+		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("멤버 추가 완료\n 현재 멤버: %s\n 총 인원:%d", strings.Join(newMembers, ", "), len(newMembers)))
 	case strings.HasPrefix(message.Content, "!팀크기"), strings.HasPrefix(message.Content, "!teamSize"):
 		replacer := strings.NewReplacer(
 			"!teamSize", "",
@@ -96,6 +109,12 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 		teamSize = s
 		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("팀 사이즈가 %d명으로 변경되었습니다.", teamSize))
 	case strings.HasPrefix(message.Content, "!shuffle"):
+		t, err := teams.GetTeams()
+		if err != nil {
+			discord.ChannelMessageSend(message.ChannelID, "멤버가 없습니다.")
+			return
+		}
+		members := t[0].Members
 		teams := shuffle.Shuffle(members, teamSize)
 		discord.ChannelMessageSend(message.ChannelID, teams)
 	case strings.HasPrefix(message.Content, "!help"):

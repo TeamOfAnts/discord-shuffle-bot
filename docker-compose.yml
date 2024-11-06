@@ -7,4 +7,5 @@ services:
     volumes:
       - ./cmd:/shuffle-bot/cmd
       - ./internal:/shuffle-bot/internal
+      - ./team.json:/shuffle-bot/team.json
     restart: always
