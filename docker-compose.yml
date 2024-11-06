@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./cmd:/shuffle-bot/cmd
+      - ./internal:/shuffle-bot/internal
+    restart: always
