@@ -8,13 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/TeamOfAnts/discord-shuffle-bot/internal/shuffle"
 	"github.com/TeamOfAnts/discord-shuffle-bot/internal/teams"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 )
-
-var teamSize = 0
 
 func Run() {
 	err := godotenv.Load(".env")
@@ -98,7 +95,12 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 		)
 		size := strings.TrimSpace(replacer.Replace(message.Content))
 		if len(size) == 0 {
-			discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("현재 팀 사이즈는 %d명 입니다.", teamSize))
+			teams, err := teams.GetTeams()
+			if err != nil {
+				discord.ChannelMessageSend(message.ChannelID, "팀이 없습니다.")
+				return
+			}
+			discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("현재 팀 사이즈는 %d명 입니다.", teams[0].Size))
 			return
 		}
 		s, err := strconv.Atoi(size)
@@ -106,16 +108,14 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 			discord.ChannelMessageSend(message.ChannelID, "숫자를 입력해주세요.")
 			return
 		}
-		teamSize = s
-		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("팀 사이즈가 %d명으로 변경되었습니다.", teamSize))
-	case strings.HasPrefix(message.Content, "!shuffle"):
-		t, err := teams.GetTeams()
+		teamSize, err := teams.UpdateSize(s)
 		if err != nil {
-			discord.ChannelMessageSend(message.ChannelID, "멤버가 없습니다.")
+			discord.ChannelMessageSend(message.ChannelID, "팀 사이즈 변경 실패")
 			return
 		}
-		members := t[0].Members
-		teams := shuffle.Shuffle(members, teamSize)
+		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("팀 사이즈가 %d명으로 변경되었습니다.", teamSize))
+	case strings.HasPrefix(message.Content, "!shuffle"):
+		teams := teams.Shuffle()
 		discord.ChannelMessageSend(message.ChannelID, teams)
 	case strings.HasPrefix(message.Content, "!help"):
 		discord.ChannelMessageSend(message.ChannelID, "명령어 목록\n- 멤버 추가. 구분자는 `,`\n  - !add [이름]\n  - !추가 [이름]\n- 멤버 목록\n  - !members\n  - !멤버\n- 팀당 인원수 확인\n  - !teamSize\n  - !팀크기\n- 팀당 인원수 변경\n  - !teamSize [숫자]\n  - !팀크기 [숫자]\n- 팀 나누기\n  - !shuffle\n- 도움말\n  - !help")
