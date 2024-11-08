@@ -114,10 +114,21 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 			return
 		}
 		discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("팀 사이즈가 %d명으로 변경되었습니다.", teamSize))
+	case strings.HasPrefix(message.Content, "!shuffledTeams"), strings.HasPrefix(message.Content, "!현재조"):
+		shuffledTeams, err := teams.GetShuffledTeams()
+		if err != nil {
+			discord.ChannelMessageSend(message.ChannelID, err.Error())
+			return
+		}
+		discord.ChannelMessageSend(message.ChannelID, shuffledTeams)
 	case strings.HasPrefix(message.Content, "!shuffle"):
-		teams := teams.Shuffle()
+		teams, err := teams.Shuffle()
+		if err != nil {
+			discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("팀 나누기 실패. %s", err))
+			return
+		}
 		discord.ChannelMessageSend(message.ChannelID, teams)
 	case strings.HasPrefix(message.Content, "!help"):
-		discord.ChannelMessageSend(message.ChannelID, "명령어 목록\n- 멤버 추가. 구분자는 `,`\n  - !add [이름]\n  - !추가 [이름]\n- 멤버 목록\n  - !members\n  - !멤버\n- 팀당 인원수 확인\n  - !teamSize\n  - !팀크기\n- 팀당 인원수 변경\n  - !teamSize [숫자]\n  - !팀크기 [숫자]\n- 팀 나누기\n  - !shuffle\n- 도움말\n  - !help")
+		discord.ChannelMessageSend(message.ChannelID, "명령어 목록\n- 멤버 추가. 구분자는 `,`\n  - !add [이름]\n  - !추가 [이름]\n- 멤버 목록\n  - !members\n  - !멤버\n- 팀당 인원수 확인\n  - !teamSize\n  - !팀크기\n- 팀당 인원수 변경\n  - !teamSize [숫자]\n  - !팀크기 [숫자]\n- 팀 나누기\n  - !shuffle\n- 도움말\n  - !help\n- 현재 조 확인\n  - !현재조\n  - !shuffledTeams")
 	}
 }
