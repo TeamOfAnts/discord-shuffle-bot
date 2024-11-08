@@ -138,11 +138,29 @@ func Shuffle() (string, error) {
 
 	shuffledTeams := make([][]string, 0)
 
+	dateFormat := "2006-01-02"
+	newValidDate, newShuffleAvailableDate, err := (func() (string, string, error) {
+
+		if len(shuffleVersions) == 0 {
+			return time.Now().AddDate(0, 0, 14).Format(dateFormat), time.Now().AddDate(0, 0, 10).Format(dateFormat), nil
+		}
+		d, err := time.Parse(dateFormat, shuffleVersions[0].ValidDate)
+		if err != nil {
+			return "", "", err
+		}
+
+		return d.AddDate(0, 0, 14).Format(dateFormat), d.AddDate(0, 0, 10).Format(dateFormat), nil
+	})()
+
+	if err != nil {
+		return "", err
+	}
+
 	newShuffleVersion := ShuffleVersion{
 		Teams:                []ShuffledTeam{},
-		ShuffleAvailableDate: time.Now().Add(time.Hour * 24 * 10).Format("2006-01-02"),
-		ShuffledDate:         time.Now().Format("2006-01-02"),
-		ValidDate:            time.Now().Add(time.Hour * 24 * 14).Format("2006-01-02"),
+		ShuffleAvailableDate: newShuffleAvailableDate,
+		ShuffledDate:         time.Now().Format(dateFormat),
+		ValidDate:            newValidDate,
 	}
 
 	for _, member := range members {
@@ -166,7 +184,7 @@ func Shuffle() (string, error) {
 
 	result += fmt.Sprintf("\n팀 셔플 완료\n\n**`%s`** 까지 스터디를 진행해주세요!", newShuffleVersion.ValidDate)
 
-	saveShuffleVersion([]ShuffleVersion{newShuffleVersion})
+	saveShuffleVersion(append([]ShuffleVersion{newShuffleVersion}, shuffleVersions...))
 
 	return result, nil
 }
